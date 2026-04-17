@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PENNY TRADER — Stock Trading Game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET & ROOT ─── */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0c10;
+  --surface:#111419;
+  --surface2:#181c23;
+  --border:#232830;
+  --border2:#2e3540;
+  --text:#e8eaf0;
+  --muted:#5a6478;
+  --accent:#00e5a0;
+  --accent2:#0088ff;
+  --up:#00e5a0;
+  --down:#ff4060;
+  --gold:#f5c842;
+  --mono:'Share Tech Mono',monospace;
+  --sans:'Syne',sans-serif;
+  --radius:10px;
+  /* skin variables */
+  --skin-bg:var(--bg);
+  --skin-surface:var(--surface);
+  --skin-accent:var(--accent);
+  --skin-grid-color:rgba(255,255,255,0.03);
+}
+
+/* ─── SKIN CLASSES ─── */
+.skin-matrix{
+  --skin-bg:#000a00;--skin-surface:#001a00;--skin-accent:#00ff41;
+  --skin-grid-color:rgba(0,255,65,0.04);--bg:#000a00;--surface:#001a00;--border:#003300;
+  --accent:#00ff41;--up:#00ff41;--text:#b0ffb8;--muted:#2a5530;
+}
+.skin-neon{
+  --skin-bg:#0a0014;--skin-surface:#130020;--skin-accent:#ff00ff;
+  --skin-grid-color:rgba(255,0,255,0.04);--bg:#0a0014;--surface:#130020;
+  --border:#2a0040;--accent:#ff00ff;--up:#00ffcc;--down:#ff0055;--text:#f0d0ff;--muted:#5a2070;
+}
+.skin-gold{
+  --skin-bg:#0d0a00;--skin-surface:#1a1400;--skin-accent:#f5c842;
+  --skin-grid-color:rgba(245,200,66,0.04);--bg:#0d0a00;--surface:#1a1400;
+  --border:#332800;--accent:#f5c842;--up:#f5c842;--down:#ff6030;--text:#f5eac0;--muted:#5a4a10;
+}
+.skin-ice{
+  --skin-bg:#050a14;--skin-surface:#0a1020;--skin-accent:#40c8ff;
+  --skin-grid-color:rgba(64,200,255,0.04);--bg:#050a14;--surface:#0a1020;
+  --border:#0f2040;--accent:#40c8ff;--up:#40c8ff;--down:#ff4060;--text:#c8e8ff;--muted:#204060;
+}
+
+body{background:var(--skin-bg,var(--bg));color:var(--text);font-family:var(--sans);min-height:100vh;transition:background 0.5s,color 0.5s}
+
+/* ─── LAYOUT ─── */
+#app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+#header{display:flex;align-items:center;gap:16px;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--skin-surface,var(--surface));flex-shrink:0;flex-wrap:wrap}
+#header h1{font-family:var(--mono);font-size:16px;color:var(--skin-accent,var(--accent));letter-spacing:2px;white-space:nowrap}
+.hstat{display:flex;flex-direction:column;gap:1px;min-width:80px}
+.hstat-label{font-size:10px;color:var(--muted);font-family:var(--mono);text-transform:uppercase;letter-spacing:1px}
+.hstat-val{font-family:var(--mono);font-size:14px;font-weight:700}
+.hstat-val.up{color:var(--up)}
+.hstat-val.down{color:var(--down)}
+.hstat-val.gold{color:var(--gold)}
+.spacer{flex:1}
+#main{display:flex;flex:1;overflow:hidden}
+
+/* ─── SIDEBAR ─── */
+#sidebar{width:220px;flex-shrink:0;border-right:1px solid var(--border);background:var(--skin-surface,var(--surface));display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-section{padding:12px 14px;border-bottom:1px solid var(--border)}
+.sidebar-section h3{font-family:var(--mono);font-size:10px;color:var(--muted);letter-spacing:2px;margin-bottom:8px;text-transform:uppercase}
+.ticker-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius);cursor:pointer;transition:background 0.15s;margin-bottom:2px}
+.ticker-item:hover,.ticker-item.active{background:var(--border)}
+.ticker-item.active{border-left:2px solid var(--skin-accent,var(--accent))}
+.ti-sym{font-family:var(--mono);font-size:12px;font-weight:700;flex:1}
+.ti-price{font-family:var(--mono);font-size:11px}
+.ti-chg{font-family:var(--mono);font-size:10px;padding:1px 5px;border-radius:4px}
+.ti-chg.up{color:var(--up);background:rgba(0,229,160,0.1)}
+.ti-chg.down{color:var(--down);background:rgba(255,64,96,0.1)}
+.add-row{display:flex;gap:6px;padding:10px 14px}
+.add-row input{flex:1;background:var(--border);border:1px solid var(--border2);color:var(--text);padding:6px 8px;border-radius:6px;font-family:var(--mono);font-size:12px;text-transform:uppercase}
+.add-row input:focus{outline:none;border-color:var(--skin-accent,var(--accent))}
+.add-row button{padding:6px 10px;background:var(--skin-accent,var(--accent));color:#000;border:none;border-radius:6px;font-weight:700;font-size:12px;cursor:pointer;font-family:var(--mono)}
+
+/* ─── CHART PANEL ─── */
+#chartPanel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#chartHeader{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+#activeSymbol{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--skin-accent,var(--accent))}
+#activeName{font-size:12px;color:var(--muted);font-family:var(--mono)}
+#activePrice{font-family:var(--mono);font-size:24px;font-weight:700}
+#activeChange{font-family:var(--mono);font-size:13px;padding:3px 8px;border-radius:6px;font-weight:700}
+.tf-btns{display:flex;gap:4px;margin-left:auto}
+.tf-btn{padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:none;color:var(--muted);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all 0.15s}
+.tf-btn:hover{border-color:var(--skin-accent,var(--accent));color:var(--skin-accent,var(--accent))}
+.tf-btn.active{background:var(--skin-accent,var(--accent));color:#000;border-color:var(--skin-accent,var(--accent))}
+
+#chartWrap{flex:1;padding:12px 16px 6px;position:relative;min-height:0}
+canvas#chart{width:100%!important;height:100%!important;display:block}
+
+/* ─── TRADE BAR ─── */
+#tradeBar{display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--border);background:var(--skin-surface,var(--surface));flex-shrink:0;flex-wrap:wrap}
+#tradeBar label{font-family:var(--mono);font-size:11px;color:var(--muted)}
+#sharesInput{width:90px;background:var(--border);border:1px solid var(--border2);color:var(--text);padding:7px 10px;border-radius:6px;font-family:var(--mono);font-size:13px}
+#sharesInput:focus{outline:none;border-color:var(--skin-accent,var(--accent))}
+#tradeTotal{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.trade-btn{padding:8px 20px;border-radius:6px;border:none;font-family:var(--mono);font-size:13px;font-weight:700;cursor:pointer;transition:all 0.15s}
+#buyBtn{background:var(--up);color:#000}
+#sellBtn{background:var(--down);color:#fff}
+.trade-btn:hover{filter:brightness(1.15)}
+.trade-btn:active{transform:scale(0.97)}
+#positionInfo{font-family:var(--mono);font-size:11px;color:var(--muted);margin-left:auto}
+
+/* ─── RIGHT PANEL ─── */
+#rightPanel{width:260px;flex-shrink:0;border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--skin-surface,var(--surface))}
+.rp-tabs{display:flex;border-bottom:1px solid var(--border)}
+.rp-tab{flex:1;padding:9px 6px;text-align:center;font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s}
+.rp-tab.active{color:var(--skin-accent,var(--accent));border-bottom-color:var(--skin-accent,var(--accent))}
+.rp-content{flex:1;overflow-y:auto;padding:12px 14px}
+
+/* ─── MISSIONS ─── */
+.mission-card{background:var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--muted);transition:border-color 0.3s}
+.mission-card.active-m{border-left-color:var(--skin-accent,var(--accent))}
+.mission-card.done{border-left-color:var(--gold);opacity:0.7}
+.m-title{font-size:12px;font-weight:700;margin-bottom:3px}
+.m-desc{font-size:10px;color:var(--muted);margin-bottom:6px;line-height:1.4}
+.m-reward{font-family:var(--mono);font-size:10px;color:var(--gold)}
+.progress-bar{height:4px;background:var(--border2);border-radius:2px;margin-top:6px;overflow:hidden}
+.progress-fill{height:100%;background:var(--skin-accent,var(--accent));border-radius:2px;transition:width 0.5s}
+
+/* ─── REWARDS / INVENTORY ─── */
+.reward-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.reward-card{background:var(--border);border-radius:var(--radius);padding:10px 10px;text-align:center;cursor:pointer;transition:all 0.2s;border:1px solid transparent}
+.reward-card:hover{border-color:var(--skin-accent,var(--accent))}
+.reward-card.owned{border-color:var(--gold)}
+.reward-card.equipped{border-color:var(--skin-accent,var(--accent));background:rgba(0,229,160,0.08)}
+.reward-card.locked{opacity:0.4;cursor:default}
+.reward-icon{font-size:22px;margin-bottom:4px}
+.reward-name{font-size:10px;font-weight:700;margin-bottom:2px}
+.reward-cost{font-family:var(--mono);font-size:10px;color:var(--gold)}
+.reward-status{font-size:9px;color:var(--muted);margin-top:2px}
+
+/* ─── PORTFOLIO ─── */
+.port-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;font-family:var(--mono)}
+.port-row:last-child{border-bottom:none}
+.port-sym{font-weight:700;min-width:40px}
+.port-qty{color:var(--muted);min-width:40px}
+.port-val{margin-left:auto;text-align:right}
+.port-pnl{font-size:10px;text-align:right;min-width:60px}
+
+/* ─── TOAST / ACHIEVEMENT ─── */
+#toast{position:fixed;bottom:70px;right:24px;background:var(--skin-surface,var(--surface));border:1px solid var(--skin-accent,var(--accent));color:var(--skin-accent,var(--accent));padding:12px 18px;border-radius:var(--radius);font-family:var(--mono);font-size:13px;z-index:999;pointer-events:none;transform:translateY(20px);opacity:0;transition:all 0.3s;max-width:280px}
+#toast.show{opacity:1;transform:translateY(0)}
+
+/* ─── XP BAR ─── */
+#xpRow{display:flex;align-items:center;gap:8px;padding:4px 16px;background:var(--skin-surface,var(--surface));border-bottom:1px solid var(--border);flex-shrink:0}
+#levelBadge{font-family:var(--mono);font-size:11px;color:var(--skin-accent,var(--accent));white-space:nowrap}
+#xpTrack{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+#xpFill{height:100%;background:var(--skin-accent,var(--accent));border-radius:3px;transition:width 0.6s}
+#xpLabel{font-family:var(--mono);font-size:10px;color:var(--muted);white-space:nowrap}
+
+/* ─── SCROLLBARS ─── */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+/* ─── MISC ─── */
+.badge{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.badge.xp{background:rgba(245,200,66,0.15);color:var(--gold)}
+.badge.coin{background:rgba(0,229,160,0.12);color:var(--up)}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- HEADER -->
+<div id="header">
+  <h1>// PENNY TRADER</h1>
+  <div class="hstat"><span class="hstat-label">Cash</span><span class="hstat-val" id="hCash">$10,000</span></div>
+  <div class="hstat"><span class="hstat-label">Portfolio</span><span class="hstat-val" id="hPortVal">$0</span></div>
+  <div class="hstat"><span class="hstat-label">Total P&L</span><span class="hstat-val" id="hPnl">$0.00</span></div>
+  <div class="hstat"><span class="hstat-label">Coins</span><span class="hstat-val gold" id="hCoins">🪙 0</span></div>
+  <div class="spacer"></div>
+  <div class="hstat"><span class="hstat-label">Trades</span><span class="hstat-val" id="hTrades">0</span></div>
+</div>
+
+<!-- XP BAR -->
+<div id="xpRow">
+  <span id="levelBadge">LVL 1 — NEWBIE</span>
+  <div id="xpTrack"><div id="xpFill" style="width:0%"></div></div>
+  <span id="xpLabel">0 / 100 XP</span>
+</div>
+
+<div id="main">
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-section">
+    <h3>Watchlist</h3>
+    <div id="tickerList"></div>
+  </div>
+  <div class="add-row">
+    <input id="addInput" placeholder="TICKER" maxlength="6" />
+    <button onclick="addTicker()">+</button>
+  </div>
+</div>
+
+<!-- CHART PANEL -->
+<div id="chartPanel">
+  <div id="chartHeader">
+    <div>
+      <div id="activeSymbol">SNDL</div>
+      <div id="activeName">Sundial Growers</div>
+    </div>
+    <div>
+      <div id="activePrice" class="up">—</div>
+      <div id="activeChange" class="up">—</div>
+    </div>
+    <div class="tf-btns">
+      <button class="tf-btn" onclick="setTf('1m')">1m</button>
+      <button class="tf-btn" onclick="setTf('5m')">5m</button>
+      <button class="tf-btn active" onclick="setTf('15m')">15m</button>
+      <button class="tf-btn" onclick="setTf('1h')">1h</button>
+      <button class="tf-btn" onclick="setTf('4h')">4h</button>
+      <button class="tf-btn" onclick="setTf('1d')">1D</button>
+    </div>
+  </div>
+  <div id="chartWrap">
+    <canvas id="chart"></canvas>
+  </div>
+  <!-- TRADE BAR -->
+  <div id="tradeBar">
+    <label>Shares</label>
+    <input id="sharesInput" type="number" value="100" min="1" step="1" oninput="updateTradeTotal()"/>
+    <span id="tradeTotal">Cost: $—</span>
+    <button class="trade-btn" id="buyBtn" onclick="executeTrade('buy')">▲ BUY</button>
+    <button class="trade-btn" id="sellBtn" onclick="executeTrade('sell')">▼ SELL</button>
+    <span id="positionInfo">Position: none</span>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div id="rightPanel">
+  <div class="rp-tabs">
+    <div class="rp-tab active" onclick="switchTab('missions')">MISSIONS</div>
+    <div class="rp-tab" onclick="switchTab('rewards')">REWARDS</div>
+    <div class="rp-tab" onclick="switchTab('portfolio')">HOLDS</div>
+  </div>
+  <div class="rp-content" id="rpContent"></div>
+</div>
+</div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- Chart.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+
+// ═══════════════════════════════════════════════════
+//  STOCK DATA — seeded realistic penny stock prices
+// ═══════════════════════════════════════════════════
+const STOCKS = {
+  SNDL:{name:"Sundial Growers",base:0.61,vol:0.045},
+  CLOV:{name:"Clover Health",base:1.14,vol:0.038},
+  AMC:{name:"AMC Entertainment",base:2.84,vol:0.052},
+  NKLA:{name:"Nikola Corp",base:0.55,vol:0.06},
+  MMAT:{name:"Meta Materials",base:0.14,vol:0.07},
+  SPCE:{name:"Virgin Galactic",base:0.91,vol:0.049},
+  BBIG:{name:"Vinco Ventures",base:0.08,vol:0.08},
+  TTOO:{name:"T2 Biosystems",base:0.22,vol:0.065},
+};
+
+const TF_CONFIG = {
+  '1m':{bars:60,interval:60,label:'1 Min'},
+  '5m':{bars:80,interval:300,label:'5 Min'},
+  '15m':{bars:96,interval:900,label:'15 Min'},
+  '1h':{bars:72,interval:3600,label:'1 Hour'},
+  '4h':{bars:60,interval:14400,label:'4 Hour'},
+  '1d':{bars:60,interval:86400,label:'Daily'},
+};
+
+// ═══════════════════════════════════════════════════
+//  GENERATE OHLC HISTORY
+// ═══════════════════════════════════════════════════
+function generateOHLC(sym, tf){
+  const {bars,interval,vol} = {...TF_CONFIG[tf], vol: STOCKS[sym]?.vol||0.05};
+  const base = STOCKS[sym]?.base || 1.0;
+  let now = Date.now();
+  let price = base;
+  // trend drift
+  let trend = (Math.random()-0.48)*0.001;
+  let data = [];
+  for(let i=0;i<bars;i++){
+    let t = now - (bars-i)*interval*1000;
+    let moves = Math.floor(6+Math.random()*10);
+    let pts = [price];
+    for(let j=0;j<moves;j++){
+      let pct = (Math.random()-0.5)*2*vol*(interval/900);
+      pts.push(Math.max(0.001, pts[pts.length-1]*(1+pct+trend)));
+    }
+    let o = pts[0], c = pts[pts.length-1];
+    let h = Math.max(...pts)*(1+Math.random()*0.005);
+    let l = Math.min(...pts)*(1-Math.random()*0.005);
+    data.push({t,o,h,l,c});
+    price = c;
+    // occasional spikes / news sim
+    if(Math.random()<0.03) price *= 1 + (Math.random()-0.5)*0.15;
+    price = Math.max(0.001, price);
+  }
+  return data;
+}
+
+// Cache per symbol+tf
+let ohlcCache = {};
+function getOHLC(sym,tf){
+  let key=sym+tf;
+  if(!ohlcCache[key]) ohlcCache[key]=generateOHLC(sym,tf);
+  return ohlcCache[key];
+}
+
+// ═══════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════
+let state = {
+  cash: 10000,
+  positions: {},   // sym -> {qty, avgCost}
+  trades: 0,
+  xp: 0,
+  level: 1,
+  coins: 0,
+  unlockedSkins: ['default'],
+  equippedSkin: 'default',
+  completedMissions: [],
+  activeSym: 'SNDL',
+  activeTF: '15m',
+  watchlist: Object.keys(STOCKS),
+  chartPrices: {},  // sym -> latest price
+};
+
+// ─ Load from localStorage ─
+try{let s=localStorage.getItem('pt_state2');if(s){let p=JSON.parse(s);Object.assign(state,p);}}catch(e){}
+function save(){try{localStorage.setItem('pt_state2',JSON.stringify(state));}catch(e){}}
+
+// ═══════════════════════════════════════════════════
+//  MISSIONS
+// ═══════════════════════════════════════════════════
+const MISSIONS = [
+  {id:'first_buy',  title:'First Blood',         desc:'Execute your first buy order',           xp:50,  coins:20, goal:1, type:'trades'},
+  {id:'trade5',     title:'Getting Started',      desc:'Complete 5 total trades',                xp:100, coins:30, goal:5, type:'trades'},
+  {id:'trade20',    title:'Active Trader',         desc:'Complete 20 total trades',               xp:200, coins:60, goal:20, type:'trades'},
+  {id:'profit100',  title:'First 100',             desc:'Earn $100 profit in a single trade',     xp:150, coins:50, goal:100, type:'single_profit'},
+  {id:'profit500',  title:'High Roller',           desc:'Earn $500 profit in a single trade',     xp:300, coins:100, goal:500, type:'single_profit', reward:'skin_neon'},
+  {id:'hold3',      title:'Diversified',           desc:'Hold 3 different stocks at once',        xp:120, coins:40, goal:3, type:'hold_count'},
+  {id:'loss_recov', title:'Bounce Back',           desc:'Make a profit trade after a loss trade', xp:200, coins:70, goal:1, type:'bounce_back'},
+  {id:'port2k',     title:'Portfolio $2K',         desc:'Reach $12,000 total value',              xp:250, coins:80, goal:12000, type:'total_value', reward:'skin_matrix'},
+  {id:'port5k',     title:'Wolf of Penny St.',     desc:'Reach $15,000 total value',              xp:500, coins:200, goal:15000, type:'total_value', reward:'skin_gold'},
+  {id:'trade100',   title:'Century Club',          desc:'Complete 100 total trades',              xp:600, coins:300, goal:100, type:'trades', reward:'skin_ice'},
+  {id:'buy_mmat',   title:'Nano Believer',         desc:'Buy at least 1000 shares of MMAT',       xp:80,  coins:25, goal:1000, type:'buy_shares_mmat'},
+  {id:'sell_profit','title':'Cash Out Green',      desc:'Sell any position for a profit',         xp:100, coins:35, goal:1, type:'sell_profit'},
+];
+
+// ═══════════════════════════════════════════════════
+//  REWARDS / SKINS
+// ═══════════════════════════════════════════════════
+const REWARDS = [
+  {id:'default',  name:'Default',    icon:'🖥️', cost:0,   type:'skin', class:''},
+  {id:'skin_matrix',name:'Matrix',  icon:'💚', cost:100, type:'skin', class:'skin-matrix', unlock:'port2k'},
+  {id:'skin_neon', name:'Neon',     icon:'💜', cost:150, type:'skin', class:'skin-neon',   unlock:'profit500'},
+  {id:'skin_gold', name:'Gold Rush',icon:'🏆', cost:200, type:'skin', class:'skin-gold',   unlock:'port5k'},
+  {id:'skin_ice',  name:'Ice Cold', icon:'❄️', cost:250, type:'skin', class:'skin-ice',    unlock:'trade100'},
+  {id:'bonus_2x',  name:'2x Coins', icon:'🪙', cost:80,  type:'bonus', desc:'Next trade earns double coins'},
+  {id:'bonus_info',name:'Hot Tip',  icon:'📡', cost:60,  type:'bonus', desc:'Random strong mover hint'},
+];
+
+// ═══════════════════════════════════════════════════
+//  CHART
+// ═══════════════════════════════════════════════════
+let chartInst = null;
+
+function buildChart(){
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  if(chartInst) chartInst.destroy();
+
+  const sym = state.activeSym;
+  const tf  = state.activeTF;
+  const data = getOHLC(sym, tf);
+  const accent = getComputedStyle(document.body).getPropertyValue('--skin-accent').trim() || '#00e5a0';
+  const upColor   = getComputedStyle(document.body).getPropertyValue('--up').trim() || '#00e5a0';
+  const downColor = getComputedStyle(document.body).getPropertyValue('--down').trim() || '#ff4060';
+  const mutedColor = getComputedStyle(document.body).getPropertyValue('--muted').trim() || '#5a6478';
+  const gridColor = getComputedStyle(document.body).getPropertyValue('--skin-grid-color').trim() || 'rgba(255,255,255,0.03)';
+  const textColor = getComputedStyle(document.body).getPropertyValue('--text').trim() || '#e8eaf0';
+
+  // Candlestick via bar chart workaround using float bars
+  const labels = data.map(d => {
+    let date = new Date(d.t);
+    if(tf==='1d') return date.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    return date.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  });
+
+  // We'll draw candlesticks manually on a line chart overlay
+  // Use a floating bar dataset for OHLC wicks + bodies
+  // Chart.js 4 custom candles via plugin
+  const candlePlugin = {
+    id:'candles',
+    afterDatasetsDraw(chart){
+      const {ctx,scales:{x,y}} = chart;
+      data.forEach((d,i)=>{
+        const xPos = x.getPixelForValue(i);
+        const oY=y.getPixelForValue(d.o);
+        const cY=y.getPixelForValue(d.c);
+        const hY=y.getPixelForValue(d.h);
+        const lY=y.getPixelForValue(d.l);
+        const isUp = d.c>=d.o;
+        const col = isUp ? upColor : downColor;
+        const bw = Math.max(2, x.width/data.length*0.6);
+
+        ctx.strokeStyle=col; ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(xPos,hY);ctx.lineTo(xPos,lY);ctx.stroke();
+
+        ctx.fillStyle=col;
+        const top=Math.min(oY,cY), ht=Math.max(2,Math.abs(cY-oY));
+        ctx.fillRect(xPos-bw/2,top,bw,ht);
+      });
+    }
+  };
+
+  // Volume dataset (secondary, bottom 20%)
+  const volData = data.map(d=>d.c * (Math.random()*800000+100000));
+  const maxVol  = Math.max(...volData);
+
+  chartInst = new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[{
+        label:'Volume',
+        data: volData.map(v=>v/maxVol * (Math.min(...data.map(d=>d.l))*0.15)),
+        backgroundColor: data.map(d=>d.c>=d.o?upColor+'22':downColor+'22'),
+        barThickness:'flex',
+        yAxisID:'y',
+        order:2,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{legend:{display:false},tooltip:{
+        callbacks:{
+          title(items){ return labels[items[0].dataIndex]; },
+          label(item){
+            let d=data[item.dataIndex];
+            return [`O: $${d.o.toFixed(4)}  H: $${d.h.toFixed(4)}`,`L: $${d.l.toFixed(4)}  C: $${d.c.toFixed(4)}`];
+          }
+        },
+        backgroundColor:'rgba(10,12,16,0.92)',
+        titleColor:accent,bodyColor:textColor,
+        borderColor:accent,borderWidth:1,
+        displayColors:false,
+        bodyFont:{family:"'Share Tech Mono',monospace",size:11},
+      }},
+      scales:{
+        x:{
+          ticks:{color:mutedColor,font:{family:"'Share Tech Mono',monospace",size:9},maxTicksLimit:10,maxRotation:0},
+          grid:{color:gridColor},border:{color:gridColor},
+        },
+        y:{
+          position:'right',
+          ticks:{color:mutedColor,font:{family:"'Share Tech Mono',monospace",size:9},
+            callback:v=>'$'+parseFloat(v).toFixed(v<1?4:2)},
+          grid:{color:gridColor},border:{color:gridColor},
+        }
+      }
+    },
+    plugins:[candlePlugin]
+  });
+
+  // update header prices
+  const last = data[data.length-1];
+  const first = data[0];
+  const pct = ((last.c-first.o)/first.o)*100;
+  const sym2 = state.activeSym;
+  state.chartPrices[sym2] = last.c;
+  document.getElementById('activeSymbol').textContent = sym2;
+  document.getElementById('activeName').textContent = STOCKS[sym2]?.name||sym2;
+  const pEl = document.getElementById('activePrice');
+  pEl.textContent = '$'+last.c.toFixed(last.c<1?4:2);
+  pEl.className = pct>=0?'up':'down';
+  const cEl = document.getElementById('activeChange');
+  cEl.textContent = (pct>=0?'+':'')+pct.toFixed(2)+'%';
+  cEl.className = (pct>=0?'up':'down');
+  updateTradeTotal();
+  updatePositionInfo();
+}
+
+function setTf(tf){
+  state.activeTF = tf;
+  document.querySelectorAll('.tf-btn').forEach(b=>{
+    b.classList.toggle('active', b.textContent.trim()===tf||b.getAttribute('onclick').includes("'"+tf+"'"));
+  });
+  buildChart();
+  save();
+}
+
+// ═══════════════════════════════════════════════════
+//  SIDEBAR
+// ═══════════════════════════════════════════════════
+function renderSidebar(){
+  const list = document.getElementById('tickerList');
+  list.innerHTML = state.watchlist.map(sym=>{
+    const d = getOHLC(sym,'15m');
+    const last = d[d.length-1].c;
+    const first = d[0].o;
+    const pct = ((last-first)/first)*100;
+    const dir = pct>=0?'up':'down';
+    const active = sym===state.activeSym?'active':'';
+    return `<div class="ticker-item ${active}" onclick="selectSym('${sym}')">
+      <span class="ti-sym">${sym}</span>
+      <span class="ti-price" style="color:var(--${dir})">$${last.toFixed(last<1?4:2)}</span>
+      <span class="ti-chg ${dir}">${pct>=0?'+':''}${pct.toFixed(1)}%</span>
+    </div>`;
+  }).join('');
+}
+
+function selectSym(sym){
+  state.activeSym = sym;
+  renderSidebar();
+  buildChart();
+  save();
+}
+
+function addTicker(){
+  const inp = document.getElementById('addInput');
+  const sym = inp.value.trim().toUpperCase().replace(/[^A-Z]/g,'');
+  if(!sym||sym.length>6){showToast('Enter a valid ticker');return;}
+  if(state.watchlist.includes(sym)){showToast(sym+' already in list');return;}
+  if(!STOCKS[sym]) STOCKS[sym]={name:sym+' Inc.',base:+(Math.random()*4+0.05).toFixed(2),vol:0.055};
+  state.watchlist.push(sym);
+  ohlcCache = {}; // clear cache
+  inp.value='';
+  renderSidebar();
+  save();
+}
+
+// ═══════════════════════════════════════════════════
+//  TRADING
+// ═══════════════════════════════════════════════════
+let lastTradeProfit = null;
+let lastTradeWasLoss = false;
+
+function currentPrice(){
+  const d = getOHLC(state.activeSym, state.activeTF);
+  return d[d.length-1].c;
+}
+
+function updateTradeTotal(){
+  const shares = parseInt(document.getElementById('sharesInput').value)||0;
+  const price = currentPrice();
+  const cost = shares*price;
+  document.getElementById('tradeTotal').textContent = `Cost: $${cost.toFixed(2)}`;
+}
+
+function updatePositionInfo(){
+  const sym = state.activeSym;
+  const pos = state.positions[sym];
+  if(pos&&pos.qty>0){
+    const price = currentPrice();
+    const val = pos.qty*price;
+    const pnl = (price-pos.avgCost)*pos.qty;
+    document.getElementById('positionInfo').innerHTML =
+      `Position: <b>${pos.qty}</b> @ $${pos.avgCost.toFixed(4)} | P&L: <span style="color:var(--${pnl>=0?'up':'down'})">${pnl>=0?'+':''}$${pnl.toFixed(2)}</span>`;
+  } else {
+    document.getElementById('positionInfo').textContent = 'Position: none';
+  }
+}
+
+function executeTrade(side){
+  const sym = state.activeSym;
+  const shares = parseInt(document.getElementById('sharesInput').value)||0;
+  if(shares<=0){showToast('Enter number of shares');return;}
+  const price = currentPrice();
+  const cost = shares*price;
+
+  if(side==='buy'){
+    if(cost>state.cash){showToast('Not enough cash! Need $'+cost.toFixed(2));return;}
+    state.cash -= cost;
+    if(!state.positions[sym]) state.positions[sym]={qty:0,avgCost:0};
+    const pos = state.positions[sym];
+    pos.avgCost = (pos.avgCost*pos.qty + cost)/(pos.qty+shares);
+    pos.qty += shares;
+    showToast(`▲ Bought ${shares} ${sym} @ $${price.toFixed(4)}`);
+    state.trades++;
+    giveXP(15,'Trade executed');
+    giveCoins(3);
+    // missions
+    checkMission('first_buy');
+    checkMission('trade5');
+    checkMission('trade20');
+    checkMission('trade100');
+    checkMission('hold3');
+    if(sym==='MMAT') checkMission('buy_shares_mmat', pos.qty);
+  } else {
+    const pos = state.positions[sym];
+    if(!pos||pos.qty<shares){showToast('Not enough shares to sell');return;}
+    const proceeds = shares*price;
+    const profitPerShare = price - pos.avgCost;
+    const profit = profitPerShare*shares;
+    state.cash += proceeds;
+    pos.qty -= shares;
+    if(pos.qty===0) delete state.positions[sym];
+    const sign = profit>=0?'+':'';
+    showToast(`▼ Sold ${shares} ${sym} @ $${price.toFixed(4)} | P&L: ${sign}$${profit.toFixed(2)}`);
+    state.trades++;
+    giveXP(profit>0?25:8,'Trade executed');
+    giveCoins(profit>0?5:1);
+    if(profit>0){
+      checkMission('sell_profit');
+      checkMission('profit100',profit);
+      checkMission('profit500',profit);
+      if(lastTradeWasLoss) checkMission('loss_recov');
+      lastTradeWasLoss = false;
+    } else {
+      lastTradeWasLoss = true;
+    }
+    lastTradeProfit = profit;
+  }
+  checkTotalValue();
+  checkMission('trade5');
+  checkMission('trade20');
+  checkMission('trade100');
+  updateHeader();
+  updatePositionInfo();
+  renderRightPanel();
+  save();
+}
+
+// ═══════════════════════════════════════════════════
+//  XP + LEVELS
+// ═══════════════════════════════════════════════════
+const LEVELS=[
+  {level:1,name:'NEWBIE',    xpNeeded:100},
+  {level:2,name:'TRADER',    xpNeeded:250},
+  {level:3,name:'HUSTLER',   xpNeeded:500},
+  {level:4,name:'INVESTOR',  xpNeeded:1000},
+  {level:5,name:'SHARK',     xpNeeded:2000},
+  {level:6,name:'WOLF',      xpNeeded:4000},
+  {level:7,name:'LEGEND',    xpNeeded:Infinity},
+];
+function getCurrentLevel(){
+  let total=0;
+  for(let i=0;i<LEVELS.length;i++){
+    if(state.xp<(total+LEVELS[i].xpNeeded)){
+      return {idx:i,lvl:LEVELS[i],xpInLevel:state.xp-total,total};
+    }
+    total+=LEVELS[i].xpNeeded;
+  }
+  return {idx:LEVELS.length-1,lvl:LEVELS[LEVELS.length-1],xpInLevel:0,total:0};
+}
+function giveXP(amt,reason){
+  const before=getCurrentLevel().idx;
+  state.xp+=amt;
+  const after=getCurrentLevel();
+  updateXPBar();
+  if(after.idx>before) showToast('⬆️ LEVEL UP! You are now '+after.lvl.name);
+}
+function giveCoins(amt){ state.coins+=amt; updateHeader(); }
+function updateXPBar(){
+  const {lvl,xpInLevel,idx}=getCurrentLevel();
+  const pct=lvl.xpNeeded===Infinity?100:Math.round((xpInLevel/lvl.xpNeeded)*100);
+  document.getElementById('xpFill').style.width=pct+'%';
+  document.getElementById('xpLabel').textContent=`${state.xp} XP`;
+  document.getElementById('levelBadge').textContent=`LVL ${idx+1} — ${lvl.name}`;
+}
+
+// ═══════════════════════════════════════════════════
+//  HEADER
+// ═══════════════════════════════════════════════════
+function portfolioValue(){
+  return Object.entries(state.positions).reduce((sum,[sym,pos])=>{
+    const d=getOHLC(sym,'15m');
+    return sum+(pos.qty*(d[d.length-1].c));
+  },0);
+}
+function updateHeader(){
+  const portVal=portfolioValue();
+  const total=state.cash+portVal;
+  const pnl=total-10000;
+  document.getElementById('hCash').textContent='$'+state.cash.toFixed(2);
+  document.getElementById('hPortVal').textContent='$'+portVal.toFixed(2);
+  const pnlEl=document.getElementById('hPnl');
+  pnlEl.textContent=(pnl>=0?'+':'')+' $'+pnl.toFixed(2);
+  pnlEl.className='hstat-val '+(pnl>=0?'up':'down');
+  document.getElementById('hCoins').textContent='🪙 '+state.coins;
+  document.getElementById('hTrades').textContent=state.trades;
+}
+
+// ═══════════════════════════════════════════════════
+//  MISSIONS
+// ═══════════════════════════════════════════════════
+function checkMission(id, value=null){
+  if(state.completedMissions.includes(id)) return;
+  const m=MISSIONS.find(x=>x.id===id);
+  if(!m) return;
+  let done=false;
+  if(m.type==='trades'&&state.trades>=m.goal) done=true;
+  if(m.type==='single_profit'&&value!==null&&value>=m.goal) done=true;
+  if(m.type==='hold_count'&&Object.keys(state.positions).length>=m.goal) done=true;
+  if(m.type==='total_value'){
+    const tv=state.cash+portfolioValue();
+    if(tv>=m.goal) done=true;
+  }
+  if(m.type==='buy_shares_mmat'&&value!==null&&value>=m.goal) done=true;
+  if(m.type==='sell_profit'&&lastTradeProfit!==null&&lastTradeProfit>0) done=true;
+  if(m.type==='bounce_back') done=true;
+  if(done){
+    state.completedMissions.push(id);
+    giveXP(m.xp,'Mission: '+m.title);
+    giveCoins(m.coins);
+    showToast(`🏆 MISSION COMPLETE: ${m.title}\n+${m.xp} XP | +${m.coins} coins`);
+    if(m.reward) state.unlockedSkins.push(m.reward);
+    save();
+    renderRightPanel();
+  }
+}
+function checkTotalValue(){
+  checkMission('port2k');
+  checkMission('port5k');
+}
+function missionProgress(m){
+  if(m.type==='trades') return Math.min(1,state.trades/m.goal);
+  if(m.type==='hold_count') return Math.min(1,Object.keys(state.positions).length/m.goal);
+  if(m.type==='total_value') return Math.min(1,(state.cash+portfolioValue())/m.goal);
+  if(state.completedMissions.includes(m.id)) return 1;
+  return 0;
+}
+
+// ═══════════════════════════════════════════════════
+//  RIGHT PANEL
+// ═══════════════════════════════════════════════════
+let activeTab='missions';
+function switchTab(tab){
+  activeTab=tab;
+  document.querySelectorAll('.rp-tab').forEach((el,i)=>{
+    const tabs=['missions','rewards','portfolio'];
+    el.classList.toggle('active',tabs[i]===tab);
+  });
+  renderRightPanel();
+}
+function renderRightPanel(){
+  const el=document.getElementById('rpContent');
+  if(activeTab==='missions'){
+    const active=MISSIONS.filter(m=>!state.completedMissions.includes(m.id));
+    const done=MISSIONS.filter(m=>state.completedMissions.includes(m.id));
+    el.innerHTML='<div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:8px">ACTIVE ('+active.length+')</div>'+
+      active.map(m=>{
+        const pct=Math.round(missionProgress(m)*100);
+        return `<div class="mission-card active-m">
+          <div class="m-title">${m.title}</div>
+          <div class="m-desc">${m.desc}</div>
+          <div class="m-reward">🏆 +${m.xp} XP &nbsp; 🪙 +${m.coins}${m.reward?` &nbsp; 🎨 unlocks ${m.reward.replace('skin_','').toUpperCase()}`:''}</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+          <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:3px">${pct}%</div>
+        </div>`;
+      }).join('')+
+      (done.length?'<div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;margin:12px 0 8px">COMPLETED ('+done.length+')</div>'+
+      done.map(m=>`<div class="mission-card done"><div class="m-title">✓ ${m.title}</div></div>`).join(''):'');
+  }
+  else if(activeTab==='rewards'){
+    el.innerHTML='<div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:8px">SKINS & BONUSES</div>'+
+      '<div class="reward-grid">'+REWARDS.map(r=>{
+        const owned=r.cost===0||state.unlockedSkins.includes(r.id)||r.cost<=state.coins||state.coins>=r.cost;
+        const canBuy=r.cost>0&&!state.unlockedSkins.includes(r.id)&&state.coins>=r.cost;
+        const isEquipped=state.equippedSkin===r.id;
+        const isLocked=r.cost>0&&!state.unlockedSkins.includes(r.id)&&state.coins<r.cost&&!state.unlockedSkins.includes(r.id);
+        const lockClass=state.unlockedSkins.includes(r.id)||r.cost===0?'owned':(canBuy?'owned':'locked');
+        const btnText=isEquipped?'Equipped':state.unlockedSkins.includes(r.id)||r.cost===0?'Equip':(canBuy?`Buy 🪙${r.cost}`:`🪙${r.cost}`);
+        const equippedClass=isEquipped?'equipped':'';
+        return `<div class="reward-card ${lockClass} ${equippedClass}" onclick="handleReward('${r.id}',${r.cost})">
+          <div class="reward-icon">${r.icon}</div>
+          <div class="reward-name">${r.name}</div>
+          <div class="reward-cost">${r.cost===0?'Free':'🪙 '+r.cost}</div>
+          <div class="reward-status" style="color:${isEquipped?'var(--skin-accent)':''}">${btnText}</div>
+        </div>`;
+      }).join('')+'</div>';
+  }
+  else if(activeTab==='portfolio'){
+    const ports=Object.entries(state.positions).filter(([,p])=>p.qty>0);
+    if(!ports.length){
+      el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:12px;margin-top:2rem">No open positions</div>';
+      return;
+    }
+    el.innerHTML='<div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:8px">OPEN POSITIONS</div>'+
+      ports.map(([sym,pos])=>{
+        const d=getOHLC(sym,'15m');
+        const price=d[d.length-1].c;
+        const val=pos.qty*price;
+        const pnl=(price-pos.avgCost)*pos.qty;
+        const dir=pnl>=0?'up':'down';
+        return `<div class="port-row" onclick="selectSym('${sym}')" style="cursor:pointer">
+          <span class="port-sym" style="color:var(--skin-accent)">${sym}</span>
+          <span class="port-qty">${pos.qty}sh</span>
+          <span class="port-val">$${val.toFixed(2)}</span>
+          <span class="port-pnl" style="color:var(--${dir})">${pnl>=0?'+':''}$${pnl.toFixed(2)}</span>
+        </div>`;
+      }).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  REWARDS
+// ═══════════════════════════════════════════════════
+function handleReward(id, cost){
+  const r=REWARDS.find(x=>x.id===id);
+  if(!r) return;
+  if(r.type==='skin'){
+    if(state.equippedSkin===id) return;
+    if(!state.unlockedSkins.includes(id)&&r.cost>0){
+      if(state.coins<r.cost){showToast('Need 🪙 '+r.cost+' coins');return;}
+      state.coins-=r.cost;
+      state.unlockedSkins.push(id);
+    }
+    equipSkin(id);
+    save();
+    renderRightPanel();
+    updateHeader();
+  } else if(r.type==='bonus'){
+    if(state.coins<r.cost){showToast('Need 🪙 '+r.cost+' coins');return;}
+    state.coins-=r.cost;
+    save();
+    updateHeader();
+    if(id==='bonus_info'){
+      const sym=state.watchlist[Math.floor(Math.random()*state.watchlist.length)];
+      showToast('📡 Hot Tip: Watch '+sym+' — unusual volume detected!');
+    } else {
+      showToast('🪙 2x Coins bonus activated for next trade!');
+    }
+    renderRightPanel();
+  }
+}
+function equipSkin(id){
+  const r=REWARDS.find(x=>x.id===id);
+  document.body.className=r?.class||'';
+  state.equippedSkin=id;
+  setTimeout(()=>buildChart(),100);
+  showToast('🎨 Skin equipped: '+(r?.name||id));
+}
+
+// ═══════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════
+let toastTimer=null;
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.classList.remove('show'),4000);
+}
+
+// ═══════════════════════════════════════════════════
+//  SIMULATE LIVE PRICES — tick every 8s
+// ═══════════════════════════════════════════════════
+function simTick(){
+  // extend each 15m cache slightly
+  state.watchlist.forEach(sym=>{
+    const key=sym+'15m';
+    if(ohlcCache[key]){
+      const last=ohlcCache[key][ohlcCache[key].length-1];
+      const vol=STOCKS[sym]?.vol||0.05;
+      const move=(Math.random()-0.5)*2*vol*0.3;
+      const newC=Math.max(0.001,last.c*(1+move));
+      // update last candle
+      ohlcCache[key][ohlcCache[key].length-1].c=newC;
+      ohlcCache[key][ohlcCache[key].length-1].h=Math.max(ohlcCache[key][ohlcCache[key].length-1].h,newC);
+      ohlcCache[key][ohlcCache[key].length-1].l=Math.min(ohlcCache[key][ohlcCache[key].length-1].l,newC);
+    }
+  });
+  renderSidebar();
+  buildChart();
+  updateHeader();
+  updatePositionInfo();
+}
+setInterval(simTick,8000);
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+// apply saved skin
+if(state.equippedSkin&&state.equippedSkin!=='default'){
+  const r=REWARDS.find(x=>x.id===state.equippedSkin);
+  if(r) document.body.className=r.class;
+}
+renderSidebar();
+buildChart();
+updateHeader();
+updateXPBar();
+renderRightPanel();
+
+// keyboard shortcut: Enter to add ticker
+document.getElementById('addInput').addEventListener('keydown',e=>{if(e.key==='Enter') addTicker();});
+document.getElementById('sharesInput').addEventListener('input',updateTradeTotal);
+
+// initial missions check
+checkMission('trade5');checkMission('trade20');checkMission('trade100');checkMission('hold3');checkTotalValue();
+
+</script>
+</body>
+</html>
